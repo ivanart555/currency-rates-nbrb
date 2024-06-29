@@ -29,7 +29,7 @@ public class RateService {
         this.objectMapper = objectMapper;
     }
 
-    public boolean updateRates(LocalDate date) {
+    public void updateRates(LocalDate date) {
         String ratesJson;
         try {
             ratesJson = currencyRatesAPI.getRates(date);
@@ -55,7 +55,6 @@ public class RateService {
         } catch (Exception e) {
             throw new RateServiceException("Error saving rates to database", e);
         }
-        return true;
     }
 
     public RateDTO getCurrencyRate(LocalDate date, String currencyCode) {
