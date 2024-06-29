@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -49,8 +48,10 @@ public class RateService {
         return true;
     }
 
-    public Optional<Rate> getCurrencyRate(LocalDate date, String currencyCode) {
-        return rateRepository.findByDateAndCurrencyCode(date, currencyCode);
+    public RateDTO getCurrencyRate(LocalDate date, String currencyCode) {
+        Rate rate = rateRepository.findByDateAndCurrencyCode(date, currencyCode).orElse(null);
+
+        return convertToDTO(rate);
     }
 
     private Rate convertToEntity(RateDTO rateDTO) {
@@ -62,5 +63,17 @@ public class RateService {
         rate.setRate(rateDTO.getRate());
         rate.setScale(rateDTO.getScale());
         return rate;
+    }
+
+    private RateDTO convertToDTO(Rate rate) {
+
+        RateDTO rateDTO = new RateDTO();
+        rateDTO.setDate(rate.getDate());
+        rateDTO.setRate(rate.getRate());
+        rateDTO.setScale(rate.getScale());
+        rateDTO.setCurId(rate.getCurrency().getCurId());
+        rateDTO.setAbbreviation(rate.getCurrency().getAbbreviation());
+        rateDTO.setName(rate.getCurrency().getName());
+        return rateDTO;
     }
 }

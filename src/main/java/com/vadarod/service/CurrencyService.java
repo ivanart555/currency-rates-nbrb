@@ -42,10 +42,6 @@ public class CurrencyService {
         currencyRepository.saveAll(currencies);
     }
 
-    public List<Currency> findAllCurrencies() {
-        return currencyRepository.findAll();
-    }
-
     private Currency convertToEntity(CurrencyDTO currencyDTO) {
         Currency currency = new Currency();
         currency.setCurId(currencyDTO.getCurId());

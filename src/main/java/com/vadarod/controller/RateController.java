@@ -1,5 +1,6 @@
 package com.vadarod.controller;
 
+import com.vadarod.dto.RateDTO;
 import com.vadarod.entities.Rate;
 import com.vadarod.service.RateService;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -27,10 +28,9 @@ public class RateController {
     }
 
     @GetMapping("/")
-    public Rate getRate(@RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-                        @RequestParam String currencyCode) {
+    public RateDTO getRate(@RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+                           @RequestParam("currencyCode") String currencyCode) {
 
-        Optional<Rate> rate = rateService.getCurrencyRate(date, currencyCode);
-        return rate.orElse(null);
+        return rateService.getCurrencyRate(date, currencyCode);
     }
 }
