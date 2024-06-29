@@ -77,14 +77,15 @@ public class RateController {
             responses = {
                     @ApiResponse(responseCode = "200", description = "Currency rate retrieved successfully",
                             content = @Content(mediaType = "application/json",
-                                    examples = @ExampleObject(value = "{\n" +
-                                            "  \"Cur_ID\": 456,\n" +
-                                            "  \"Date\": \"2024-06-29\",\n" +
-                                            "  \"Cur_OfficialRate\": 3.68,\n" +
-                                            "  \"Cur_Scale\": 100,\n" +
-                                            "  \"Cur_Abbreviation\": \"RUB\",\n" +
-                                            "  \"Cur_Name\": \"Российский рубль\"\n" +
-                                            "}"))),
+                                    examples = @ExampleObject(value = """
+                                            {
+                                              "Cur_ID": 456,
+                                              "Date": "2024-06-29",
+                                              "Cur_OfficialRate": 3.68,
+                                              "Cur_Scale": 100,
+                                              "Cur_Abbreviation": "RUB",
+                                              "Cur_Name": "Российский рубль"
+                                            }"""))),
                     @ApiResponse(responseCode = "400", description = "Error: Date cannot be in the future",
                             content = @Content(mediaType = "text/plain",
                                     examples = @ExampleObject(value = "{\"error\": \"Error: Date cannot be in the future\"}"))),
