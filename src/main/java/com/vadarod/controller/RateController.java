@@ -10,6 +10,8 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +29,7 @@ import java.time.LocalDate;
 @Tag(name = "Currency rates API", description = "Get and store currency rates from bank api")
 public class RateController {
     private final RateService rateService;
+    private static final Logger logger = LoggerFactory.getLogger(RateController.class);
 
     public RateController(RateService rateService) {
         this.rateService = rateService;
@@ -49,15 +52,20 @@ public class RateController {
     public ResponseEntity<String> updateRates(
             @Parameter(description = "The date for which the rates should be updated", example = "2024-06-29")
             @RequestParam(name = "date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        logger.info("Request to update rates for date: {}", date);
+
         if (date.isAfter(LocalDate.now())) {
+            logger.warn("Attempt to update rates with a future date: {}", date);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Error: Date cannot be in the future");
         }
 
         try {
             rateService.updateRates(date);
+            logger.info("Rates updated successfully for date: {}", date);
             return ResponseEntity.ok(String.format("Currency rates loaded successfully for date: %s", date));
         } catch (RateServiceException e) {
+            logger.error("Error updating rates for date: {}", date, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(String.format("Error updating rates: %s", e.getMessage()));
         }
@@ -90,15 +98,20 @@ public class RateController {
             @Parameter(description = "The 3-digit currency code", example = "643")
             @RequestParam(name = "currencyCode") @Pattern(regexp = "\\d{3}",
                     message = "Invalid currency code format. Must contain 3 numbers.") String currencyCode) {
+        logger.info("Request to get currency rate for date: {} and currency code: {}", date, currencyCode);
+
         if (date.isAfter(LocalDate.now())) {
+            logger.warn("Attempt to get rates with a future date: {}", date);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Error: Date cannot be in the future");
         }
 
         try {
             RateDTO rateDTO = rateService.getCurrencyRate(date, currencyCode);
+            logger.info("Rate retrieved successfully for date: {} and currency code: {}", date, currencyCode);
             return ResponseEntity.ok(rateDTO);
         } catch (RateServiceException e) {
+            logger.error("Error retrieving rate for date: {} and currency code: {}", date, currencyCode, e);
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(String.format("Currency rate for currency: %s and date: %s not found in database.", currencyCode, date));
         }

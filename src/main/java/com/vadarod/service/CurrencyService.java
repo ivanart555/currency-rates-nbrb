@@ -7,6 +7,8 @@ import com.vadarod.entities.Currency;
 import com.vadarod.exception.CurrencyServiceException;
 import com.vadarod.external_api.CurrencyRatesAPI;
 import com.vadarod.repository.CurrencyRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,6 +19,7 @@ public class CurrencyService {
     private final CurrencyRatesAPI currencyRatesAPI;
     private final CurrencyRepository currencyRepository;
     private final ObjectMapper objectMapper;
+    private static final Logger logger = LoggerFactory.getLogger(CurrencyService.class);
 
     public CurrencyService(CurrencyRatesAPI currencyRatesAPI, CurrencyRepository currencyRepository, ObjectMapper objectMapper) {
         this.currencyRatesAPI = currencyRatesAPI;
@@ -25,18 +28,24 @@ public class CurrencyService {
     }
 
     public void fetchAndSaveCurrencies() {
+        logger.info("Starting to fetch and save currencies");
+
         String currenciesJson;
         try {
+            logger.debug("Performing external API call to fetch currencies");
             currenciesJson = currencyRatesAPI.getCurrencies();
         } catch (Exception e) {
+            logger.error("Error occurred while calling external API to fetch currencies", e);
             throw new CurrencyServiceException("Error fetching currencies from external API", e);
         }
 
         List<CurrencyDTO> currencyDTOs;
         try {
-            currencyDTOs = objectMapper.readValue(currenciesJson, new TypeReference<>() {});
+            logger.debug("Deserializing currencies JSON");
+            currencyDTOs = objectMapper.readValue(currenciesJson, new TypeReference<>() {
+            });
         } catch (Exception e) {
-            System.err.println("Error deserializing JSON: " + e.getMessage());
+            logger.error("Error deserializing JSON for currencies", e);
             throw new CurrencyServiceException("Error deserializing JSON", e);
         }
 
@@ -45,18 +54,25 @@ public class CurrencyService {
                 .collect(Collectors.toList());
 
         try {
+            logger.debug("Saving currencies to the database");
             currencyRepository.saveAll(currencies);
+            logger.info("Currencies fetched and saved successfully");
         } catch (Exception e) {
+            logger.error("Error saving currencies to database", e);
             throw new CurrencyServiceException("Error saving currencies to database", e);
         }
     }
 
     private Currency convertToEntity(CurrencyDTO currencyDTO) {
+        logger.debug("Converting CurrencyDTO to Currency entity for Cur_ID: {}", currencyDTO.getCurId());
+
         Currency currency = new Currency();
         currency.setCurId(currencyDTO.getCurId());
         currency.setName(currencyDTO.getName());
         currency.setCode(currencyDTO.getCode());
         currency.setAbbreviation(currencyDTO.getAbbreviation());
+
+        logger.debug("Currency entity created successfully for Cur_ID: {}", currencyDTO.getCurId());
 
         return currency;
     }
