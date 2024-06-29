@@ -3,6 +3,12 @@ package com.vadarod.controller;
 import com.vadarod.dto.RateDTO;
 import com.vadarod.exception.RateServiceException;
 import com.vadarod.service.RateService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Pattern;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -16,8 +22,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 
 @RestController
-@RequestMapping("/api/rates")
+@RequestMapping("/api/v1/rates")
 @Validated
+@Tag(name = "Currency rates API", description = "Get and store currency rates from bank api")
 public class RateController {
     private final RateService rateService;
 
@@ -26,7 +33,22 @@ public class RateController {
     }
 
     @GetMapping("/update")
-    public ResponseEntity<String> updateRates(@RequestParam(name = "date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+    @Operation(summary = "Update the currency rates for a specific date",
+            description = "Updates the currency rates for the given date amd stores it in local database for further use.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Currency rates loaded successfully",
+                            content = @Content(mediaType = "text/plain",
+                                    examples = @ExampleObject(value = "Currency rates loaded successfully for date: 2024-06-29"))),
+                    @ApiResponse(responseCode = "400", description = "Error: Date cannot be in the future",
+                            content = @Content(mediaType = "text/plain",
+                                    examples = @ExampleObject(value = "Error: Date cannot be in the future"))),
+                    @ApiResponse(responseCode = "500", description = "Error updating rates",
+                            content = @Content(mediaType = "text/plain",
+                                    examples = @ExampleObject(value = "Error updating rates: detailed error message")))
+            })
+    public ResponseEntity<String> updateRates(
+            @Parameter(description = "The date for which the rates should be updated", example = "2024-06-29")
+            @RequestParam(name = "date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         if (date.isAfter(LocalDate.now())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Error: Date cannot be in the future");
@@ -42,9 +64,32 @@ public class RateController {
     }
 
     @GetMapping("/")
-    public ResponseEntity<?> getRate(@RequestParam(name = "date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-                                     @RequestParam(name = "currencyCode") @Pattern(regexp = "\\d{3}",
-                                             message = "Invalid currency code format. Must contain 3 numbers.") String currencyCode) {
+    @Operation(summary = "Get currency rate by date and currency code",
+            description = "Retrieves the currency rate for the given date and currency code from local database.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Currency rate retrieved successfully",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = "{\n" +
+                                            "  \"Cur_ID\": 456,\n" +
+                                            "  \"Date\": \"2024-06-29\",\n" +
+                                            "  \"Cur_OfficialRate\": 3.68,\n" +
+                                            "  \"Cur_Scale\": 100,\n" +
+                                            "  \"Cur_Abbreviation\": \"RUB\",\n" +
+                                            "  \"Cur_Name\": \"Российский рубль\"\n" +
+                                            "}"))),
+                    @ApiResponse(responseCode = "400", description = "Error: Date cannot be in the future",
+                            content = @Content(mediaType = "text/plain",
+                                    examples = @ExampleObject(value = "{\"error\": \"Error: Date cannot be in the future\"}"))),
+                    @ApiResponse(responseCode = "404", description = "Currency rate not found",
+                            content = @Content(mediaType = "text/plain",
+                                    examples = @ExampleObject(value = "{\"error\": \"Currency rate for currency: 643 and date: 2024-06-29 not found in database.\"}")))
+            })
+    public ResponseEntity<?> getRate(
+            @Parameter(description = "The date for which the rate is requested", example = "2024-06-29")
+            @RequestParam(name = "date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @Parameter(description = "The 3-digit currency code", example = "643")
+            @RequestParam(name = "currencyCode") @Pattern(regexp = "\\d{3}",
+                    message = "Invalid currency code format. Must contain 3 numbers.") String currencyCode) {
         if (date.isAfter(LocalDate.now())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Error: Date cannot be in the future");
