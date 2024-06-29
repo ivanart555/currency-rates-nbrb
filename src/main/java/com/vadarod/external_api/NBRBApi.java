@@ -1,12 +1,9 @@
 package com.vadarod.external_api;
 
-import com.vadarod.entities.Currency;
-import com.vadarod.entities.Rate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @Service
 public class NBRBApi implements CurrencyRatesAPI {
@@ -18,26 +15,26 @@ public class NBRBApi implements CurrencyRatesAPI {
     }
 
     @Override
-    public List<Currency> getCurrencies() {
+    public String getCurrencies() {
         WebClient webClient = webClientBuilder.baseUrl(uri).build();
-        List<Currency> currencies = webClient.get()
+        return webClient.get()
                 .uri("currencies")
                 .retrieve()
-                .bodyToFlux(Currency.class)
-                .collectList()
+                .bodyToMono(String.class)
                 .block();
-        return currencies;
     }
 
     @Override
-    public List<Rate> getRates(LocalDate date) {
+    public String getRates(LocalDate date) {
         WebClient webClient = webClientBuilder.baseUrl(uri).build();
-        List<Rate> rates = webClient.get()
-                .uri("rates?ondate={date}&periodicity=0", date.toString())
+
+        return webClient.get()
+                .uri(uriBuilder -> uriBuilder.path("rates")
+                        .queryParam("ondate", date.toString())
+                        .queryParam("periodicity", "0")
+                        .build())
                 .retrieve()
-                .bodyToFlux(Rate.class)
-                .collectList()
+                .bodyToMono(String.class)
                 .block();
-        return rates;
     }
 }
