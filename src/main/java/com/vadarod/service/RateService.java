@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vadarod.dto.RateDTO;
 import com.vadarod.entities.Currency;
 import com.vadarod.entities.Rate;
+import com.vadarod.exception.RateServiceException;
 import com.vadarod.external_api.CurrencyRatesAPI;
 import com.vadarod.repository.CurrencyRepository;
 import com.vadarod.repository.RateRepository;
@@ -29,33 +30,60 @@ public class RateService {
     }
 
     public boolean updateRates(LocalDate date) {
-        String ratesJson = currencyRatesAPI.getRates(date);
+        String ratesJson;
+        try {
+            ratesJson = currencyRatesAPI.getRates(date);
+        } catch (Exception e) {
+            throw new RateServiceException("Error fetching rates from external API", e);
+        }
 
         List<RateDTO> rateDTOs;
         try {
             rateDTOs = objectMapper.readValue(ratesJson, new TypeReference<>() {
             });
         } catch (Exception e) {
-
             System.err.println("Error deserializing JSON: " + e.getMessage());
-            throw new RuntimeException("Error deserializing JSON", e);
+            throw new RateServiceException("Error deserializing JSON", e);
         }
 
         List<Rate> rates = rateDTOs.stream()
                 .map(this::convertToEntity)
                 .collect(Collectors.toList());
-        rateRepository.saveAll(rates);
+
+        try {
+            rateRepository.saveAll(rates);
+        } catch (Exception e) {
+            throw new RateServiceException("Error saving rates to database", e);
+        }
         return true;
     }
 
     public RateDTO getCurrencyRate(LocalDate date, String currencyCode) {
-        Rate rate = rateRepository.findByDateAndCurrencyCode(date, currencyCode).orElse(null);
+        Rate rate;
+        try {
+            rate = rateRepository.findByDateAndCurrencyCode(date, currencyCode).orElse(null);
+        } catch (Exception e) {
+            throw new RateServiceException("Error fetching rate from database", e);
+        }
+
+        if (rate == null) {
+            throw new RateServiceException(String.format("Rate for currency: %s and date: %s not found", currencyCode, date));
+        }
 
         return convertToDTO(rate);
     }
 
     private Rate convertToEntity(RateDTO rateDTO) {
-        Currency currency = currencyRepository.findByCurId(rateDTO.getCurId()).orElse(null);
+        Currency currency;
+        try {
+            currency = currencyRepository.findByCurId(rateDTO.getCurId()).orElse(null);
+        } catch (Exception e) {
+            throw new RateServiceException(String.format("Failed to get currency from database with id: %s", rateDTO.getCurId()), e);
+        }
+
+        if (currency == null) {
+            throw new RateServiceException(String.format("Currency with id: %s not found in database", rateDTO.getCurId()));
+        }
 
         Rate rate = new Rate();
         rate.setCurrency(currency);

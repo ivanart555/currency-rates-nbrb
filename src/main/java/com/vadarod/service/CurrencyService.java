@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vadarod.dto.CurrencyDTO;
 import com.vadarod.entities.Currency;
+import com.vadarod.exception.CurrencyServiceException;
 import com.vadarod.external_api.CurrencyRatesAPI;
 import com.vadarod.repository.CurrencyRepository;
 import org.springframework.stereotype.Service;
@@ -24,22 +25,30 @@ public class CurrencyService {
     }
 
     public void fetchAndSaveCurrencies() {
-        String currenciesJson = currencyRatesAPI.getCurrencies();
+        String currenciesJson;
+        try {
+            currenciesJson = currencyRatesAPI.getCurrencies();
+        } catch (Exception e) {
+            throw new CurrencyServiceException("Error fetching currencies from external API", e);
+        }
 
         List<CurrencyDTO> currencyDTOs;
         try {
-            currencyDTOs = objectMapper.readValue(currenciesJson, new TypeReference<>() {
-            });
+            currencyDTOs = objectMapper.readValue(currenciesJson, new TypeReference<>() {});
         } catch (Exception e) {
-
             System.err.println("Error deserializing JSON: " + e.getMessage());
-            throw new RuntimeException("Error deserializing JSON", e);
+            throw new CurrencyServiceException("Error deserializing JSON", e);
         }
 
         List<Currency> currencies = currencyDTOs.stream()
                 .map(this::convertToEntity)
                 .collect(Collectors.toList());
-        currencyRepository.saveAll(currencies);
+
+        try {
+            currencyRepository.saveAll(currencies);
+        } catch (Exception e) {
+            throw new CurrencyServiceException("Error saving currencies to database", e);
+        }
     }
 
     private Currency convertToEntity(CurrencyDTO currencyDTO) {
