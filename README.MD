@@ -84,12 +84,12 @@ curl -X GET "http://localhost:8080/api/v1/rates/?date=2024-06-29&currencyCode=64
 
 ```
 {
-  "curId": 456,
-  "date": "2024-06-29",
-  "rate": 3.68,
-  "scale": 100,
-  "abbreviation": "RUB",
-  "name": "Российский рубль"
+  "Cur_ID": 456,
+  "Date": "2024-06-29",
+  "Cur_OfficialRate": 3.68,
+  "Cur_Scale": 100,
+  "Cur_Abbreviation": "RUB",
+  "Cur_Name": "Российский рубль"
 }
 ```
 
